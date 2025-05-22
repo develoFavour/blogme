@@ -31,7 +31,6 @@ export default function ProfileScreen() {
 	const [showEditModal, setShowEditModal] = useState(false);
 	const [newBio, setNewBio] = useState(currentUser?.bio || "");
 
-	// Animation values
 	const scrollY = useRef(new Animated.Value(0)).current;
 	const headerHeight = scrollY.interpolate({
 		inputRange: [0, HEADER_SCROLL_DISTANCE],
@@ -58,7 +57,6 @@ export default function ProfileScreen() {
 		user.followers.includes(currentUser.id)
 	);
 
-	// Prepare data for the following tab with sections
 	const following = users.filter((user) =>
 		currentUser.following.includes(user.id)
 	);
@@ -87,7 +85,7 @@ export default function ProfileScreen() {
 						renderItem={({ item }) => <Post post={item} />}
 						contentContainerStyle={[
 							styles.listContent,
-							{ paddingTop: HEADER_MAX_HEIGHT + 50 }, // Add padding for header
+							{ paddingTop: HEADER_MAX_HEIGHT + 50 },
 						]}
 						ListEmptyComponent={
 							<Text style={styles.emptyText}>No posts yet</Text>
@@ -107,7 +105,7 @@ export default function ProfileScreen() {
 						renderItem={({ item }) => <UserCard user={item} />}
 						contentContainerStyle={[
 							styles.listContent,
-							{ paddingTop: HEADER_MAX_HEIGHT + 50 }, // Add padding for header
+							{ paddingTop: HEADER_MAX_HEIGHT + 50 },
 						]}
 						ListEmptyComponent={
 							<Text style={styles.emptyText}>No followers yet</Text>
@@ -132,7 +130,7 @@ export default function ProfileScreen() {
 						)}
 						contentContainerStyle={[
 							styles.listContent,
-							{ paddingTop: HEADER_MAX_HEIGHT + 50 }, // Add padding for header
+							{ paddingTop: HEADER_MAX_HEIGHT + 50 },
 						]}
 						ListEmptyComponent={
 							<Text style={styles.emptyText}>Not following anyone yet</Text>
@@ -331,7 +329,7 @@ const styles = StyleSheet.create({
 		top: 0,
 		left: 0,
 		right: 0,
-		height: HEADER_MIN_HEIGHT - 50, // Subtract tabs height
+		height: HEADER_MIN_HEIGHT - 50,
 		flexDirection: "row",
 		alignItems: "center",
 		paddingHorizontal: 15,

@@ -20,7 +20,7 @@ export type Post = {
 	text: string;
 	timestamp: string;
 	likes: number;
-	likedBy: string[]; // Array of user IDs who liked the post
+	likedBy: string[];
 	comments: Comment[];
 	image?: string;
 };
@@ -59,7 +59,6 @@ export const PostProvider = ({ children }: { children: React.ReactNode }) => {
 		try {
 			const storedPosts = await AsyncStorage.getItem("posts");
 			if (storedPosts) {
-				// Convert old format posts to new format if needed
 				const parsedPosts = JSON.parse(storedPosts);
 				const updatedPosts = parsedPosts.map((post: any) => {
 					if (!post.likedBy) {
@@ -69,7 +68,6 @@ export const PostProvider = ({ children }: { children: React.ReactNode }) => {
 				});
 				setPosts(updatedPosts);
 			} else {
-				// Add likedBy array to sample posts if not present
 				const updatedSamplePosts = samplePosts.map((post) => {
 					if (!post.likedBy) {
 						return { ...post, likedBy: [] };
@@ -81,7 +79,7 @@ export const PostProvider = ({ children }: { children: React.ReactNode }) => {
 			}
 		} catch (error) {
 			console.error("Error loading posts:", error);
-			// Add likedBy array to sample posts if not present
+
 			const updatedSamplePosts = samplePosts.map((post) => {
 				if (!post.likedBy) {
 					return { ...post, likedBy: [] };
@@ -142,12 +140,10 @@ export const PostProvider = ({ children }: { children: React.ReactNode }) => {
 
 		const updatedPosts = posts.map((post) => {
 			if (post.id === postId) {
-				// Check if user already liked this post
 				if (post.likedBy.includes(currentUser.id)) {
-					return post; // Already liked, do nothing
+					return post;
 				}
 
-				// Add user to likedBy array and increment likes count
 				return {
 					...post,
 					likes: post.likes + 1,
@@ -168,12 +164,10 @@ export const PostProvider = ({ children }: { children: React.ReactNode }) => {
 
 		const updatedPosts = posts.map((post) => {
 			if (post.id === postId) {
-				// Check if user has liked this post
 				if (!post.likedBy.includes(currentUser.id)) {
-					return post; // Not liked, do nothing
+					return post;
 				}
 
-				// Remove user from likedBy array and decrement likes count
 				return {
 					...post,
 					likes: Math.max(0, post.likes - 1), // Ensure likes don't go below 0

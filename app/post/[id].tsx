@@ -88,14 +88,11 @@ export default function PostDetailScreen() {
 	});
 	const hasLiked = isPostLiked(post.id);
 
-	// Find the post author in the users list
 	const postAuthor = users.find((user) => user.username === post.username);
 
-	// Check if current user is following the post author
 	const isFollowing =
 		postAuthor && currentUser?.following.includes(postAuthor.id);
 
-	// Don't show follow button for current user's posts
 	const isCurrentUser = postAuthor?.id === currentUser?.id;
 
 	const handleFollowToggle = () => {

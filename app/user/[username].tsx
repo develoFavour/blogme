@@ -31,7 +31,6 @@ export default function UserProfileScreen() {
 	const [activeTab, setActiveTab] = useState("posts");
 	const router = useRouter();
 
-	// Animation values
 	const scrollY = useRef(new Animated.Value(0)).current;
 	const headerHeight = scrollY.interpolate({
 		inputRange: [0, HEADER_SCROLL_DISTANCE],
@@ -112,7 +111,7 @@ export default function UserProfileScreen() {
 						renderItem={({ item }) => <Post post={item} />}
 						contentContainerStyle={[
 							styles.listContent,
-							{ paddingTop: HEADER_MAX_HEIGHT + 50 }, // Add padding for header
+							{ paddingTop: HEADER_MAX_HEIGHT + 50 },
 						]}
 						ListEmptyComponent={
 							<Text style={styles.emptyText}>No posts yet</Text>
@@ -147,7 +146,7 @@ export default function UserProfileScreen() {
 						)}
 						contentContainerStyle={[
 							styles.listContent,
-							{ paddingTop: HEADER_MAX_HEIGHT + 50 }, // Add padding for header
+							{ paddingTop: HEADER_MAX_HEIGHT + 50 },
 						]}
 						ListEmptyComponent={
 							<Text style={styles.emptyText}>No followers yet</Text>
@@ -182,7 +181,7 @@ export default function UserProfileScreen() {
 						)}
 						contentContainerStyle={[
 							styles.listContent,
-							{ paddingTop: HEADER_MAX_HEIGHT + 50 }, // Add padding for header
+							{ paddingTop: HEADER_MAX_HEIGHT + 50 },
 						]}
 						ListEmptyComponent={
 							<Text style={styles.emptyText}>Not following anyone yet</Text>
@@ -380,7 +379,7 @@ const styles = StyleSheet.create({
 		top: 0,
 		left: 0,
 		right: 0,
-		height: HEADER_MIN_HEIGHT - 50, // Subtract tabs height
+		height: HEADER_MIN_HEIGHT - 50,
 		flexDirection: "row",
 		alignItems: "center",
 		paddingHorizontal: 15,

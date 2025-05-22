@@ -1,11 +1,6 @@
-// This is a mock API service for demo purposes
-// In a real app, you would connect to a real news API like NewsAPI.org
-
 export const fetchTrendingNews = async () => {
-	// Simulate API call delay
 	await new Promise((resolve) => setTimeout(resolve, 1000));
 
-	// Return mock data
 	return [
 		{
 			id: "1",

@@ -49,14 +49,11 @@ const Post: React.FC<PostProps> = ({ post }) => {
 		addSuffix: true,
 	});
 
-	// Find the post author in the users list
 	const postAuthor = users.find((user) => user.username === post.username);
 
-	// Check if current user is following the post author
 	const isFollowing =
 		postAuthor && currentUser?.following.includes(postAuthor.id);
 
-	// Don't show follow button for current user's posts
 	const isCurrentUser = postAuthor?.id === currentUser?.id;
 
 	const handleFollowToggle = () => {
@@ -69,7 +66,6 @@ const Post: React.FC<PostProps> = ({ post }) => {
 		}
 	};
 
-	// Check if the current user has liked this post
 	const hasLiked = isPostLiked(post.id);
 
 	const navigateToPostDetail = () => {

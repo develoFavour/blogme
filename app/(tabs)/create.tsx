@@ -64,7 +64,7 @@ export default function CreatePostScreen() {
 				multiline
 				value={postText}
 				onChangeText={setPostText}
-				maxLength={350} // Allow typing a bit more than the limit to show the error state
+				maxLength={350}
 			/>
 
 			<View style={styles.footer}>

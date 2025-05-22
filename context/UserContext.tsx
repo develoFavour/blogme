@@ -64,7 +64,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 			if (user) {
 				setCurrentUser(JSON.parse(user));
 			} else {
-				// Set default user for demo purposes
 				setCurrentUser(sampleUsers[0]);
 				await AsyncStorage.setItem(
 					"currentUser",
