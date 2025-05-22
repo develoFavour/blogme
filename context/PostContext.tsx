@@ -1,12 +1,6 @@
 "use client";
 import { UserContext } from "./UserContext";
-import {
-	createContext,
-	useState,
-	useEffect,
-	useContext,
-	PropsWithChildren,
-} from "react";
+import { createContext, useState, useEffect, useContext } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 import { samplePosts } from "../data/sampleData";
@@ -26,6 +20,7 @@ export type Post = {
 	text: string;
 	timestamp: string;
 	likes: number;
+	likedBy: string[]; // Array of user IDs who liked the post
 	comments: Comment[];
 	image?: string;
 };
@@ -34,6 +29,7 @@ type PostContextType = {
 	posts: Post[];
 	addPost: (text: string) => void;
 	likePost: (postId: string) => void;
+	unlikePost: (postId: string) => void;
 	isPostLiked: (postId: string) => boolean;
 	addComment: (postId: string, text: string) => void;
 	getUserPosts: (username: string) => Post[];
@@ -44,15 +40,15 @@ export const PostContext = createContext<PostContextType>({
 	posts: [],
 	addPost: () => {},
 	likePost: () => {},
-	isPostLiked: (postId: string) => false,
+	unlikePost: () => {},
+	isPostLiked: () => false,
 	addComment: () => {},
 	getUserPosts: () => [],
 	refreshPosts: async () => {},
 });
 
-export const PostProvider = ({ children }: PropsWithChildren) => {
+export const PostProvider = ({ children }: { children: React.ReactNode }) => {
 	const [posts, setPosts] = useState<Post[]>([]);
-	const [likedPosts, setLikedPosts] = useState<string[]>([]);
 	const { currentUser } = useContext(UserContext);
 
 	useEffect(() => {
@@ -63,14 +59,36 @@ export const PostProvider = ({ children }: PropsWithChildren) => {
 		try {
 			const storedPosts = await AsyncStorage.getItem("posts");
 			if (storedPosts) {
-				setPosts(JSON.parse(storedPosts));
+				// Convert old format posts to new format if needed
+				const parsedPosts = JSON.parse(storedPosts);
+				const updatedPosts = parsedPosts.map((post: any) => {
+					if (!post.likedBy) {
+						return { ...post, likedBy: [] };
+					}
+					return post;
+				});
+				setPosts(updatedPosts);
 			} else {
-				setPosts(samplePosts);
-				await AsyncStorage.setItem("posts", JSON.stringify(samplePosts));
+				// Add likedBy array to sample posts if not present
+				const updatedSamplePosts = samplePosts.map((post) => {
+					if (!post.likedBy) {
+						return { ...post, likedBy: [] };
+					}
+					return post;
+				});
+				setPosts(updatedSamplePosts);
+				await AsyncStorage.setItem("posts", JSON.stringify(updatedSamplePosts));
 			}
 		} catch (error) {
 			console.error("Error loading posts:", error);
-			setPosts(samplePosts);
+			// Add likedBy array to sample posts if not present
+			const updatedSamplePosts = samplePosts.map((post) => {
+				if (!post.likedBy) {
+					return { ...post, likedBy: [] };
+				}
+				return post;
+			});
+			setPosts(updatedSamplePosts);
 		}
 	};
 
@@ -100,6 +118,7 @@ export const PostProvider = ({ children }: PropsWithChildren) => {
 			text,
 			timestamp: new Date().toISOString(),
 			likes: 0,
+			likedBy: [],
 			comments: [],
 		};
 
@@ -108,19 +127,64 @@ export const PostProvider = ({ children }: PropsWithChildren) => {
 		savePosts(updatedPosts);
 	};
 
+	const isPostLiked = (postId: string): boolean => {
+		if (!currentUser) return false;
+
+		const post = posts.find((p) => p.id === postId);
+		return post ? post.likedBy.includes(currentUser.id) : false;
+	};
+
 	const likePost = (postId: string) => {
-		if (likedPosts.includes(postId)) {
+		if (!currentUser) {
+			Alert.alert("Error", "You must be logged in to like posts");
 			return;
 		}
+
 		const updatedPosts = posts.map((post) => {
 			if (post.id === postId) {
-				return { ...post, likes: post.likes + 1 };
+				// Check if user already liked this post
+				if (post.likedBy.includes(currentUser.id)) {
+					return post; // Already liked, do nothing
+				}
+
+				// Add user to likedBy array and increment likes count
+				return {
+					...post,
+					likes: post.likes + 1,
+					likedBy: [...post.likedBy, currentUser.id],
+				};
 			}
 			return post;
 		});
+
 		setPosts(updatedPosts);
 		savePosts(updatedPosts);
-		setLikedPosts([...likedPosts, postId]);
+	};
+
+	const unlikePost = (postId: string) => {
+		if (!currentUser) {
+			return;
+		}
+
+		const updatedPosts = posts.map((post) => {
+			if (post.id === postId) {
+				// Check if user has liked this post
+				if (!post.likedBy.includes(currentUser.id)) {
+					return post; // Not liked, do nothing
+				}
+
+				// Remove user from likedBy array and decrement likes count
+				return {
+					...post,
+					likes: Math.max(0, post.likes - 1), // Ensure likes don't go below 0
+					likedBy: post.likedBy.filter((id) => id !== currentUser.id),
+				};
+			}
+			return post;
+		});
+
+		setPosts(updatedPosts);
+		savePosts(updatedPosts);
 	};
 
 	const addComment = (postId: string, text: string) => {
@@ -161,7 +225,8 @@ export const PostProvider = ({ children }: PropsWithChildren) => {
 				posts,
 				addPost,
 				likePost,
-				isPostLiked: (postId: string) => likedPosts.includes(postId),
+				unlikePost,
+				isPostLiked,
 				addComment,
 				getUserPosts,
 				refreshPosts,

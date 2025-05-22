@@ -14,25 +14,28 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { formatDistanceToNow } from "date-fns";
 import { type Post as PostType, PostContext } from "../context/PostContext";
+import { UserContext } from "../context/UserContext";
+import { useRouter } from "expo-router";
 
 type PostProps = {
 	post: PostType;
-};
-type Comment = {
-	id: string;
-	username: string;
-	text: string;
-	timestamp: string;
 };
 
 const Post: React.FC<PostProps> = ({ post }) => {
 	const [showComments, setShowComments] = useState(false);
 	const [commentText, setCommentText] = useState("");
-	const { likePost, addComment, isPostLiked } = useContext(PostContext);
-	console.log("Is post liked", isPostLiked(post.id));
+	const { likePost, unlikePost, isPostLiked, addComment } =
+		useContext(PostContext);
+	const { currentUser, followUser, unfollowUser, users } =
+		useContext(UserContext);
+	const router = useRouter();
 
-	const handleLike = () => {
-		likePost(post.id);
+	const handleLikeToggle = () => {
+		if (isPostLiked(post.id)) {
+			unlikePost(post.id);
+		} else {
+			likePost(post.id);
+		}
 	};
 
 	const handleAddComment = () => {
@@ -46,14 +49,80 @@ const Post: React.FC<PostProps> = ({ post }) => {
 		addSuffix: true,
 	});
 
+	// Find the post author in the users list
+	const postAuthor = users.find((user) => user.username === post.username);
+
+	// Check if current user is following the post author
+	const isFollowing =
+		postAuthor && currentUser?.following.includes(postAuthor.id);
+
+	// Don't show follow button for current user's posts
+	const isCurrentUser = postAuthor?.id === currentUser?.id;
+
+	const handleFollowToggle = () => {
+		if (!postAuthor) return;
+
+		if (isFollowing) {
+			unfollowUser(postAuthor.id);
+		} else {
+			followUser(postAuthor.id);
+		}
+	};
+
+	// Check if the current user has liked this post
+	const hasLiked = isPostLiked(post.id);
+
+	const navigateToPostDetail = () => {
+		router.push({
+			pathname: "/post/[id]",
+			params: { id: post.id },
+		});
+	};
+
+	const navigateToUserProfile = () => {
+		router.push({
+			pathname: "/user/[username]",
+			params: { username: post.username },
+		});
+	};
+
 	return (
-		<View style={styles.container}>
+		<TouchableOpacity
+			style={styles.container}
+			onPress={navigateToPostDetail}
+			activeOpacity={0.9}
+		>
 			<View style={styles.header}>
-				<Image source={{ uri: post.userAvatar }} style={styles.avatar} />
-				<View>
-					<Text style={styles.username}>@{post.username}</Text>
-					<Text style={styles.timestamp}>{formattedDate}</Text>
-				</View>
+				<TouchableOpacity
+					style={styles.userInfo}
+					onPress={navigateToUserProfile}
+					activeOpacity={0.7}
+				>
+					<Image source={{ uri: post.userAvatar }} style={styles.avatar} />
+					<View>
+						<Text style={styles.username}>@{post.username}</Text>
+						<Text style={styles.timestamp}>{formattedDate}</Text>
+					</View>
+				</TouchableOpacity>
+
+				{!isCurrentUser && postAuthor && (
+					<TouchableOpacity
+						style={[
+							styles.followButton,
+							isFollowing ? styles.followingButton : {},
+						]}
+						onPress={handleFollowToggle}
+					>
+						<Text
+							style={[
+								styles.followButtonText,
+								isFollowing ? styles.followingButtonText : {},
+							]}
+						>
+							{isFollowing ? "Following" : "Follow"}
+						</Text>
+					</TouchableOpacity>
+				)}
 			</View>
 
 			<Text style={styles.text}>{post.text}</Text>
@@ -63,11 +132,14 @@ const Post: React.FC<PostProps> = ({ post }) => {
 			)}
 
 			<View style={styles.actions}>
-				<TouchableOpacity style={styles.actionButton} onPress={handleLike}>
+				<TouchableOpacity
+					style={styles.actionButton}
+					onPress={handleLikeToggle}
+				>
 					<Ionicons
-						name="heart-outline"
+						name={hasLiked ? "heart" : "heart-outline"}
 						size={20}
-						color={isPostLiked(post.id) ? "red" : "#666"}
+						color={hasLiked ? "#FF3B30" : "#666"}
 					/>
 					<Text style={styles.actionText}>{post.likes}</Text>
 				</TouchableOpacity>
@@ -90,13 +162,12 @@ const Post: React.FC<PostProps> = ({ post }) => {
 							value={commentText}
 							onChangeText={setCommentText}
 						/>
-						r
 						<TouchableOpacity onPress={handleAddComment}>
 							<Ionicons name="send" size={20} color="#1DA1F2" />
 						</TouchableOpacity>
 					</View>
 
-					{post.comments.map((comment: Comment) => (
+					{post.comments.map((comment) => (
 						<View key={comment.id} style={styles.comment}>
 							<Text style={styles.commentUsername}>@{comment.username}</Text>
 							<Text style={styles.commentText}>{comment.text}</Text>
@@ -104,7 +175,7 @@ const Post: React.FC<PostProps> = ({ post }) => {
 					))}
 				</View>
 			)}
-		</View>
+		</TouchableOpacity>
 	);
 };
 
@@ -123,7 +194,12 @@ const styles = StyleSheet.create({
 	header: {
 		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "space-between",
 		marginBottom: 10,
+	},
+	userInfo: {
+		flexDirection: "row",
+		alignItems: "center",
 	},
 	avatar: {
 		width: 40,
@@ -137,6 +213,25 @@ const styles = StyleSheet.create({
 	timestamp: {
 		fontSize: 12,
 		color: "#666",
+	},
+	followButton: {
+		backgroundColor: "#1DA1F2",
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: 15,
+	},
+	followButtonText: {
+		color: "white",
+		fontWeight: "bold",
+		fontSize: 12,
+	},
+	followingButton: {
+		backgroundColor: "white",
+		borderWidth: 1,
+		borderColor: "#1DA1F2",
+	},
+	followingButtonText: {
+		color: "#1DA1F2",
 	},
 	text: {
 		fontSize: 16,

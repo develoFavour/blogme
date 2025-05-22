@@ -45,12 +45,7 @@ export default function TabLayout() {
 					title: "Create Post",
 				}}
 			/>
-			<Tabs.Screen
-				name="reels"
-				options={{
-					title: "Reels",
-				}}
-			/>
+
 			<Tabs.Screen
 				name="profile"
 				options={{

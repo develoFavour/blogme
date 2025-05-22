@@ -1,35 +1,35 @@
 "use client";
 
-import { useContext, useState, useRef } from "react";
+import { useContext, useState, useEffect, useRef } from "react";
 import {
 	View,
 	Text,
 	StyleSheet,
 	Image,
 	TouchableOpacity,
-	Modal,
-	TextInput,
-	Alert,
+	ActivityIndicator,
+	SafeAreaView,
 	Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { UserContext } from "../../context/UserContext";
+import { useLocalSearchParams, useRouter, Stack } from "expo-router";
+import { UserContext, type User } from "../../context/UserContext";
 import { PostContext } from "../../context/PostContext";
-
 import Post from "../../components/Post";
-import UserCard from "../../components/UserCard";
 
-const HEADER_MAX_HEIGHT = 300;
+const HEADER_MAX_HEIGHT = 250;
 const HEADER_MIN_HEIGHT = 85;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
-export default function ProfileScreen() {
-	const { currentUser, users, updateUserProfile } = useContext(UserContext);
+export default function UserProfileScreen() {
+	const { username } = useLocalSearchParams();
+	const { users, currentUser, followUser, unfollowUser } =
+		useContext(UserContext);
 	const { getUserPosts } = useContext(PostContext);
-
+	const [user, setUser] = useState<User | null>(null);
+	const [loading, setLoading] = useState(true);
 	const [activeTab, setActiveTab] = useState("posts");
-	const [showEditModal, setShowEditModal] = useState(false);
-	const [newBio, setNewBio] = useState(currentUser?.bio || "");
+	const router = useRouter();
 
 	// Animation values
 	const scrollY = useRef(new Animated.Value(0)).current;
@@ -51,30 +51,55 @@ export default function ProfileScreen() {
 		extrapolate: "clamp",
 	});
 
-	if (!currentUser) return null;
+	useEffect(() => {
+		if (username) {
+			const foundUser = users.find((u) => u.username === username);
+			setUser(foundUser || null);
+		}
+		setLoading(false);
+	}, [username, users]);
 
-	const userPosts = getUserPosts(currentUser.username);
-	const followers = users.filter((user) =>
-		user.followers.includes(currentUser.id)
-	);
+	if (loading) {
+		return (
+			<View style={styles.loadingContainer}>
+				<ActivityIndicator size="large" color="#1DA1F2" />
+			</View>
+		);
+	}
 
-	// Prepare data for the following tab with sections
-	const following = users.filter((user) =>
-		currentUser.following.includes(user.id)
-	);
-	const notFollowing = users.filter(
-		(user) =>
-			user.id !== currentUser.id && !currentUser.following.includes(user.id)
-	);
+	if (!user) {
+		return (
+			<View style={styles.errorContainer}>
+				<Text style={styles.errorText}>User not found</Text>
+				<TouchableOpacity
+					style={styles.backButton}
+					onPress={() => router.back()}
+				>
+					<Text style={styles.backButtonText}>Go Back</Text>
+				</TouchableOpacity>
+			</View>
+		);
+	}
 
-	const followingSections = [
-		{ title: "Following", data: following },
-		{ title: "Suggested to Follow", data: notFollowing },
-	];
+	const userPosts = getUserPosts(user.username);
+	const isCurrentUser = user.id === currentUser?.id;
+	const isFollowing = currentUser?.following.includes(user.id) || false;
+	const followers = users.filter((u) => u.followers.includes(user.id));
+	const following = users.filter((u) => user.following.includes(u.id));
 
-	const handleUpdateProfile = () => {
-		updateUserProfile(newBio);
-		setShowEditModal(false);
+	const handleFollowToggle = () => {
+		if (isFollowing) {
+			unfollowUser(user.id);
+		} else {
+			followUser(user.id);
+		}
+	};
+
+	const handleUserPress = (username: string) => {
+		router.push({
+			pathname: "/user/[username]",
+			params: { username },
+		});
 	};
 
 	const renderContent = () => {
@@ -104,7 +129,22 @@ export default function ProfileScreen() {
 					<Animated.FlatList
 						data={followers}
 						keyExtractor={(item) => item.id}
-						renderItem={({ item }) => <UserCard user={item} />}
+						renderItem={({ item }) => (
+							<TouchableOpacity onPress={() => handleUserPress(item.username)}>
+								<View style={styles.userCard}>
+									<Image
+										source={{ uri: item.avatar }}
+										style={styles.userCardAvatar}
+									/>
+									<View style={styles.userCardInfo}>
+										<Text style={styles.userCardName}>{item.name}</Text>
+										<Text style={styles.userCardUsername}>
+											@{item.username}
+										</Text>
+									</View>
+								</View>
+							</TouchableOpacity>
+						)}
 						contentContainerStyle={[
 							styles.listContent,
 							{ paddingTop: HEADER_MAX_HEIGHT + 50 }, // Add padding for header
@@ -121,14 +161,24 @@ export default function ProfileScreen() {
 				);
 			case "following":
 				return (
-					<Animated.SectionList
-						sections={followingSections}
+					<Animated.FlatList
+						data={following}
 						keyExtractor={(item) => item.id}
-						renderItem={({ item }) => <UserCard user={item} />}
-						renderSectionHeader={({ section: { title } }) => (
-							<View style={styles.sectionHeader}>
-								<Text style={styles.sectionTitle}>{title}</Text>
-							</View>
+						renderItem={({ item }) => (
+							<TouchableOpacity onPress={() => handleUserPress(item.username)}>
+								<View style={styles.userCard}>
+									<Image
+										source={{ uri: item.avatar }}
+										style={styles.userCardAvatar}
+									/>
+									<View style={styles.userCardInfo}>
+										<Text style={styles.userCardName}>{item.name}</Text>
+										<Text style={styles.userCardUsername}>
+											@{item.username}
+										</Text>
+									</View>
+								</View>
+							</TouchableOpacity>
 						)}
 						contentContainerStyle={[
 							styles.listContent,
@@ -150,18 +200,25 @@ export default function ProfileScreen() {
 	};
 
 	return (
-		<View style={styles.container}>
+		<SafeAreaView style={styles.container}>
+			<Stack.Screen
+				options={{
+					title: user.name,
+					headerBackTitle: "Back",
+				}}
+			/>
+
 			{/* Collapsible Header */}
 			<Animated.View style={[styles.header, { height: headerHeight }]}>
 				<Animated.View
 					style={[styles.profileHeader, { opacity: headerOpacity }]}
 				>
-					<Image source={{ uri: currentUser.avatar }} style={styles.avatar} />
+					<Image source={{ uri: user.avatar }} style={styles.avatar} />
 
 					<View style={styles.profileInfo}>
-						<Text style={styles.name}>{currentUser.name}</Text>
-						<Text style={styles.username}>@{currentUser.username}</Text>
-						<Text style={styles.bio}>{currentUser.bio}</Text>
+						<Text style={styles.name}>{user.name}</Text>
+						<Text style={styles.username}>@{user.username}</Text>
+						<Text style={styles.bio}>{user.bio}</Text>
 
 						<View style={styles.statsContainer}>
 							<View style={styles.stat}>
@@ -178,29 +235,31 @@ export default function ProfileScreen() {
 							</View>
 						</View>
 
-						<View style={styles.buttonContainer}>
+						{!isCurrentUser && (
 							<TouchableOpacity
-								style={styles.editButton}
-								onPress={() => setShowEditModal(true)}
+								style={[
+									styles.followButton,
+									isFollowing ? styles.followingButton : {},
+								]}
+								onPress={handleFollowToggle}
 							>
-								<Text style={styles.editButtonText}>Edit Profile</Text>
+								<Text
+									style={[
+										styles.followButtonText,
+										isFollowing ? styles.followingButtonText : {},
+									]}
+								>
+									{isFollowing ? "Following" : "Follow"}
+								</Text>
 							</TouchableOpacity>
-
-							<TouchableOpacity style={styles.signOutButton}>
-								<Ionicons name="log-out-outline" size={18} color="#FF3B30" />
-								<Text style={styles.signOutButtonText}>Sign Out</Text>
-							</TouchableOpacity>
-						</View>
+						)}
 					</View>
 				</Animated.View>
 
 				{/* Compact header that appears when scrolling */}
 				<Animated.View style={[styles.compactHeader, { opacity: nameOpacity }]}>
-					<Image
-						source={{ uri: currentUser.avatar }}
-						style={styles.compactAvatar}
-					/>
-					<Text style={styles.compactName}>{currentUser.name}</Text>
+					<Image source={{ uri: user.avatar }} style={styles.compactAvatar} />
+					<Text style={styles.compactName}>{user.name}</Text>
 				</Animated.View>
 
 				<View style={styles.tabsContainer}>
@@ -238,44 +297,7 @@ export default function ProfileScreen() {
 			</Animated.View>
 
 			{renderContent()}
-
-			<Modal visible={showEditModal} animationType="slide" transparent={true}>
-				<View style={styles.modalContainer}>
-					<View style={styles.modalContent}>
-						<Text style={styles.modalTitle}>Edit Profile</Text>
-
-						<Text style={styles.inputLabel}>Bio</Text>
-						<TextInput
-							style={styles.bioInput}
-							multiline
-							value={newBio}
-							onChangeText={setNewBio}
-							placeholder="Tell us about yourself"
-							maxLength={160}
-						/>
-
-						<View style={styles.modalButtons}>
-							<TouchableOpacity
-								style={styles.cancelButton}
-								onPress={() => {
-									setNewBio(currentUser.bio);
-									setShowEditModal(false);
-								}}
-							>
-								<Text style={styles.cancelButtonText}>Cancel</Text>
-							</TouchableOpacity>
-
-							<TouchableOpacity
-								style={styles.saveButton}
-								onPress={handleUpdateProfile}
-							>
-								<Text style={styles.saveButtonText}>Save</Text>
-							</TouchableOpacity>
-						</View>
-					</View>
-				</View>
-			</Modal>
-		</View>
+		</SafeAreaView>
 	);
 }
 
@@ -283,6 +305,33 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: "#f5f5f5",
+	},
+	loadingContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	errorContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		padding: 20,
+	},
+	errorText: {
+		fontSize: 18,
+		color: "#666",
+		marginBottom: 20,
+		textAlign: "center",
+	},
+	backButton: {
+		backgroundColor: "#1DA1F2",
+		paddingHorizontal: 20,
+		paddingVertical: 10,
+		borderRadius: 25,
+	},
+	backButtonText: {
+		color: "white",
+		fontWeight: "bold",
 	},
 	header: {
 		position: "absolute",
@@ -362,31 +411,24 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		color: "#666",
 	},
-	buttonContainer: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-	},
-	editButton: {
-		borderWidth: 1,
-		borderColor: "#1DA1F2",
+	followButton: {
+		backgroundColor: "#1DA1F2",
 		borderRadius: 20,
 		paddingVertical: 8,
 		paddingHorizontal: 15,
+		alignSelf: "flex-start",
 	},
-	editButtonText: {
-		color: "#1DA1F2",
+	followButtonText: {
+		color: "white",
 		fontWeight: "bold",
 	},
-	signOutButton: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingVertical: 8,
-		paddingHorizontal: 15,
+	followingButton: {
+		backgroundColor: "white",
+		borderWidth: 1,
+		borderColor: "#1DA1F2",
 	},
-	signOutButtonText: {
-		color: "#FF3B30",
-		marginLeft: 5,
+	followingButtonText: {
+		color: "#1DA1F2",
 	},
 	tabsContainer: {
 		flexDirection: "row",
@@ -417,71 +459,35 @@ const styles = StyleSheet.create({
 		padding: 20,
 		color: "#666",
 	},
-	sectionHeader: {
-		backgroundColor: "#f5f5f5",
-		padding: 10,
-		marginTop: 5,
-		marginBottom: 5,
-		borderRadius: 5,
-	},
-	sectionTitle: {
-		fontWeight: "bold",
-		fontSize: 16,
-		color: "#333",
-	},
-	modalContainer: {
-		flex: 1,
-		justifyContent: "center",
-		backgroundColor: "rgba(0, 0, 0, 0.5)",
-	},
-	modalContent: {
-		backgroundColor: "white",
-		margin: 20,
-		borderRadius: 10,
-		padding: 20,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.25,
-		shadowRadius: 3.84,
-		elevation: 5,
-	},
-	modalTitle: {
-		fontSize: 20,
-		fontWeight: "bold",
-		marginBottom: 20,
-	},
-	inputLabel: {
-		fontSize: 16,
-		marginBottom: 5,
-		color: "#666",
-	},
-	bioInput: {
-		borderWidth: 1,
-		borderColor: "#ddd",
-		borderRadius: 5,
-		padding: 10,
-		minHeight: 100,
-		textAlignVertical: "top",
-		marginBottom: 20,
-	},
-	modalButtons: {
+	userCard: {
 		flexDirection: "row",
-		justifyContent: "flex-end",
+		alignItems: "center",
+		backgroundColor: "white",
+		padding: 15,
+		borderRadius: 10,
+		marginBottom: 10,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.1,
+		shadowRadius: 1,
+		elevation: 1,
 	},
-	cancelButton: {
-		marginRight: 10,
-		padding: 10,
+	userCardAvatar: {
+		width: 50,
+		height: 50,
+		borderRadius: 25,
+		marginRight: 15,
 	},
-	cancelButtonText: {
-		color: "#666",
+	userCardInfo: {
+		flex: 1,
 	},
-	saveButton: {
-		backgroundColor: "#1DA1F2",
-		padding: 10,
-		borderRadius: 5,
-	},
-	saveButtonText: {
-		color: "white",
+	userCardName: {
 		fontWeight: "bold",
+		fontSize: 16,
+		marginBottom: 3,
+	},
+	userCardUsername: {
+		color: "#666",
+		fontSize: 14,
 	},
 });

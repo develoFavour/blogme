@@ -4,9 +4,9 @@ import type { User } from "../context/UserContext";
 export const sampleUsers: User[] = [
 	{
 		id: "1",
-		username: "johndoe",
-		name: "John Doe",
-		bio: "Software developer passionate about React Native and mobile apps",
+		username: "developia",
+		name: "Favour Opia",
+		bio: "Software Engineer passionate about building web and cross-platform apps",
 		avatar: "https://randomuser.me/api/portraits/men/1.jpg",
 		followers: ["2", "3"],
 		following: ["2"],
@@ -52,11 +52,12 @@ export const sampleUsers: User[] = [
 export const samplePosts: Post[] = [
 	{
 		id: "1",
-		username: "johndoe",
+		username: "developia",
 		userAvatar: "https://randomuser.me/api/portraits/men/1.jpg",
-		text: "Just launched my new React Native app! Check it out and let me know what you think. #reactnative #mobiledev",
+		text: "Software development has never been more exciting! #coding #webdev",
 		timestamp: "2023-05-15T14:30:00Z",
 		likes: 15,
+		likedBy: ["2", "3"],
 		comments: [
 			{
 				id: "101",
@@ -82,6 +83,7 @@ export const samplePosts: Post[] = [
 		text: "Working on some new design concepts for mobile apps. Minimalism is key! #uxdesign #minimalism",
 		timestamp: "2023-05-14T10:45:00Z",
 		likes: 23,
+		likedBy: ["3"],
 		comments: [
 			{
 				id: "201",
@@ -100,6 +102,7 @@ export const samplePosts: Post[] = [
 		text: "Just got back from an amazing trip to Japan. The cherry blossoms were in full bloom! #travel #japan",
 		timestamp: "2023-05-13T20:15:00Z",
 		likes: 42,
+		likedBy: ["2", "3"],
 		comments: [
 			{
 				id: "301",
@@ -132,6 +135,7 @@ export const samplePosts: Post[] = [
 		text: "New workout routine just posted on my website! This 30-day challenge will transform your fitness. #fitness #workout",
 		timestamp: "2023-05-12T09:00:00Z",
 		likes: 31,
+		likedBy: [],
 		comments: [],
 		image: "https://picsum.photos/id/26/400/300",
 	},
@@ -142,6 +146,7 @@ export const samplePosts: Post[] = [
 		text: "Just released a new track on SoundCloud. Link in bio! #music #electronicmusic",
 		timestamp: "2023-05-11T18:30:00Z",
 		likes: 27,
+		likedBy: ["2", "3"],
 		comments: [
 			{
 				id: "501",
@@ -160,6 +165,7 @@ export const samplePosts: Post[] = [
 		text: "Learning TypeScript has been a game-changer for my development workflow. Strongly recommend it! #typescript #webdev",
 		timestamp: "2023-05-10T11:20:00Z",
 		likes: 19,
+		likedBy: ["2", "3"],
 		comments: [
 			{
 				id: "601",
@@ -177,6 +183,7 @@ export const samplePosts: Post[] = [
 		text: 'Just finished reading "Design of Everyday Things". Such an insightful book for anyone interested in UX! #uxdesign #books',
 		timestamp: "2023-05-09T15:45:00Z",
 		likes: 24,
+		likedBy: ["2", "3"],
 		comments: [],
 		image: "https://picsum.photos/id/24/400/300",
 	},
